@@ -49,6 +49,50 @@ function buildCacheKey(showNames) {
   return crypto.createHash('sha256').update([...showNames].sort().join('|')).digest('hex');
 }
 
+// iTunes top podcasts chart cache (24hr TTL)
+const itunesCache = { data: null, expiresAt: 0 };
+
+async function getItunesCharts() {
+  if (itunesCache.data && Date.now() < itunesCache.expiresAt) {
+    return itunesCache.data;
+  }
+  const response = await axios.get(
+    'https://rss.itunes.apple.com/api/v1/us/podcasts/top-podcasts/all/100/explicit.json',
+    { timeout: 5000 }
+  );
+  const charts = response.data.feed.results.map((r, i) => ({ name: r.name, position: i + 1 }));
+  itunesCache.data = charts;
+  itunesCache.expiresAt = Date.now() + 24 * 60 * 60 * 1000;
+  return charts;
+}
+
+function normalizeShowName(name) {
+  return name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+}
+
+function calculateChartStats(allShowNames, charts) {
+  const matches = [];
+  for (const showName of allShowNames) {
+    const normalizedShow = normalizeShowName(showName);
+    const chart = charts.find(c => {
+      const normalizedChart = normalizeShowName(c.name);
+      return normalizedShow === normalizedChart ||
+             normalizedShow.includes(normalizedChart) ||
+             normalizedChart.includes(normalizedShow);
+    });
+    if (chart) matches.push({ name: showName, position: chart.position });
+  }
+  matches.sort((a, b) => a.position - b.position);
+
+  const score = Math.round((matches.length / allShowNames.length) * 100);
+  let tasteProfile;
+  if (score <= 30) tasteProfile = { label: 'Tastemaker', emoji: '🎯', desc: 'Your picks fly under the radar' };
+  else if (score <= 60) tasteProfile = { label: 'Balanced', emoji: '🎧', desc: 'A mix of mainstream and hidden gems' };
+  else tasteProfile = { label: 'Trendsetter', emoji: '📈', desc: "You're on top of the biggest shows" };
+
+  return { inTopCharts: matches.length, topChartMatches: matches.slice(0, 3), tasteProfile };
+}
+
 // Spotify API credentials from environment
 const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
@@ -133,18 +177,22 @@ app.post('/api/recommendations', recommendationsLimiter, async (req, res) => {
       return res.status(400).json({ error: 'No saved podcasts found' });
     }
 
-    // Extract show names and genres
-    const showNames = shows.map(s => s.show.name).slice(0, 15);
-    const genres = [...new Set(shows.flatMap(s => s.show.genres || []))].slice(0, 10);
+    // Extract show names — all for exclusion, subset for taste analysis
+    const allShowNames = shows.map(s => s.show.name);
+    const showNames = allShowNames.slice(0, 15);
 
-    // Get user profile
-    const userResponse = await axios.get('https://api.spotify.com/v1/me', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    // Fetch user profile and iTunes charts in parallel
+    const [userResponse, charts] = await Promise.all([
+      axios.get('https://api.spotify.com/v1/me', { headers: { Authorization: `Bearer ${token}` } }),
+      getItunesCharts().catch(e => { console.error('iTunes chart fetch failed:', e.message); return null; })
+    ]);
+
+    const chartStats = charts ? calculateChartStats(allShowNames, charts) : null;
 
     const stats = {
       showsSaved: shows.length,
-      userName: userResponse.data.display_name || 'Podcast Enthusiast'
+      userName: userResponse.data.display_name || 'Podcast Enthusiast',
+      ...(chartStats && { chartStats })
     };
 
     // Return cached recommendations if available for this set of shows
@@ -168,9 +216,10 @@ app.post('/api/recommendations', recommendationsLimiter, async (req, res) => {
               content: `You're a podcast expert. Based on these shows someone listens to:
 "${showNames.join('", "')}"
 
-And these genres: ${genres.join(', ')}
+Generate exactly 5 podcast recommendations they'll love. Do NOT recommend any of the following shows they already follow:
+"${allShowNames.join('", "')}"
 
-Generate exactly 5 podcast recommendations they'll love. Format as JSON array with objects containing:
+Format as JSON array with objects containing:
 - name (string)
 - host (string)
 - description (1-2 sentences)

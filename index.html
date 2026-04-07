@@ -397,6 +397,41 @@
             margin-top: 20px;
         }
 
+        .taste-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(29, 185, 84, 0.08);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-top: 16px;
+        }
+
+        .taste-emoji {
+            font-size: 24px;
+            line-height: 1;
+        }
+
+        .taste-label {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .taste-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .chart-matches {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
         .ghostweave-credit {
             display: flex;
             align-items: center;
@@ -599,14 +634,32 @@
 
         function displayStats(stats) {
             const authSection = document.querySelector('.section:first-child .section-content');
+            const cs = stats.chartStats;
             const statsHtml = `
                 <div style="margin-top: 40px; padding-top: 30px; border-top: 1px solid var(--border);">
-                    <div class="listening-stats" style="grid-template-columns: 1fr;">
+                    <div class="listening-stats" style="${cs ? '' : 'grid-template-columns: 1fr;'}">
                         <div class="stat-box">
                             <div class="stat-number">${stats.showsSaved}</div>
                             <div class="stat-label">Shows Analysed</div>
                         </div>
+                        ${cs ? `
+                        <div class="stat-box">
+                            <div class="stat-number">${cs.inTopCharts}</div>
+                            <div class="stat-label">In Apple Top 100</div>
+                        </div>` : ''}
                     </div>
+                    ${cs ? `
+                    <div class="taste-profile">
+                        <span class="taste-emoji">${cs.tasteProfile.emoji}</span>
+                        <div>
+                            <div class="taste-label">${cs.tasteProfile.label}</div>
+                            <div class="taste-desc">${cs.tasteProfile.desc}</div>
+                        </div>
+                    </div>
+                    ${cs.topChartMatches.length > 0 ? `
+                    <div class="chart-matches">
+                        ${cs.topChartMatches.map(m => `<span class="genre-tag">#${m.position} ${m.name}</span>`).join('')}
+                    </div>` : ''}` : ''}
                     <button class="share-btn" onclick="shareResults()">Share Your Podcast DNA 🎙️</button>
                 </div>
             `;
@@ -621,7 +674,9 @@
         function shareResults() {
             if (!currentData) return;
 
-            const text = `🎙️ I just discovered my Podcast DNA on Podcastify! Based on ${currentData.stats.showsSaved} saved shows, AI recommended 5 podcasts I'll love. Try it:`;
+            const cs = currentData.stats.chartStats;
+            const profileStr = cs ? ` I'm a ${cs.tasteProfile.label} — ${cs.tasteProfile.desc}.` : '';
+            const text = `🎙️ I just discovered my Podcast DNA on Podcastify! Based on ${currentData.stats.showsSaved} saved shows, AI recommended 5 podcasts I'll love.${profileStr} Try it:`;
             
             if (navigator.share) {
                 navigator.share({
