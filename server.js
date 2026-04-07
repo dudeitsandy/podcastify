@@ -195,25 +195,33 @@ app.post('/api/recommendations', recommendationsLimiter, async (req, res) => {
       ...(chartStats && { chartStats })
     };
 
-    // Return cached recommendations if available for this set of shows
-    const cacheKey = buildCacheKey(showNames);
-    const cached = getCached(cacheKey);
-    if (cached) {
-      return res.json({ recommendations: cached, stats, cached: true });
+    const recommendations = await getRecommendations(allShowNames);
+    res.json({ recommendations, stats });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ error: error.message });
     }
+    console.error('Error:', error.response?.data || error.message);
+    res.status(500).json({ error: error.message, details: error.response?.data });
+  }
+});
 
-    // Call Claude API to generate recommendations
-    let claudeResponse;
-    try {
-      claudeResponse = await axios.post(
-        'https://api.anthropic.com/v1/messages',
-        {
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [
-            {
-              role: 'user',
-              content: `You're a podcast expert. Based on these shows someone listens to:
+async function getRecommendations(allShowNames) {
+  const showNames = allShowNames.slice(0, 15);
+  const cacheKey = buildCacheKey(showNames);
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  let claudeResponse;
+  try {
+    claudeResponse = await axios.post(
+      'https://api.anthropic.com/v1/messages',
+      {
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `You're a podcast expert. Based on these shows someone listens to:
 "${showNames.join('", "')}"
 
 Generate exactly 5 podcast recommendations they'll love. Do NOT recommend any of the following shows they already follow:
@@ -226,44 +234,74 @@ Format as JSON array with objects containing:
 - why (why they'd like it based on their taste)
 
 Return ONLY valid JSON, no markdown or other text.`
-            }
-          ]
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': process.env.ANTHROPIC_API_KEY,
-            'anthropic-version': '2023-06-01'
-          }
+        }]
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01'
         }
-      );
-    } catch (claudeError) {
-      const status = claudeError.response?.status;
-      if (status === 429 || status === 402) {
-        return res.status(503).json({
-          error: 'Recommendations are temporarily unavailable due to high demand. Please try again later.'
-        });
       }
-      throw claudeError;
+    );
+  } catch (claudeError) {
+    const status = claudeError.response?.status;
+    if (status === 429 || status === 402) {
+      const err = new Error('Recommendations are temporarily unavailable due to high demand. Please try again later.');
+      err.statusCode = 503;
+      throw err;
     }
+    throw claudeError;
+  }
 
-    const content = claudeResponse.data.content[0].text;
-    let recommendations;
-    try {
-      recommendations = JSON.parse(content);
-    } catch {
-      return res.status(500).json({ error: 'Failed to parse recommendations. Please try again.' });
-    }
+  const content = claudeResponse.data.content[0].text;
+  let recommendations;
+  try {
+    recommendations = JSON.parse(content);
+  } catch {
+    const err = new Error('Failed to parse recommendations. Please try again.');
+    err.statusCode = 500;
+    throw err;
+  }
 
-    setCache(cacheKey, recommendations);
+  setCache(cacheKey, recommendations);
+  return recommendations;
+}
+
+// Generate recommendations from an OPML-parsed show list
+app.post('/api/recommendations/opml', recommendationsLimiter, async (req, res) => {
+  const { showNames } = req.body;
+
+  if (!Array.isArray(showNames) || showNames.length === 0) {
+    return res.status(400).json({ error: 'No shows provided.' });
+  }
+
+  const allShowNames = showNames.slice(0, 50).map(s => String(s).trim()).filter(Boolean);
+
+  if (allShowNames.length === 0) {
+    return res.status(400).json({ error: 'No valid shows found in your OPML file.' });
+  }
+
+  try {
+    const [charts, recommendations] = await Promise.all([
+      getItunesCharts().catch(e => { console.error('iTunes chart fetch failed:', e.message); return null; }),
+      getRecommendations(allShowNames)
+    ]);
+
+    const chartStats = charts ? calculateChartStats(allShowNames, charts) : null;
+    const stats = {
+      showsSaved: allShowNames.length,
+      userName: 'Podcast Fan',
+      ...(chartStats && { chartStats })
+    };
 
     res.json({ recommendations, stats });
   } catch (error) {
-    console.error('Error:', error.response?.data || error.message);
-    res.status(500).json({
-      error: error.message,
-      details: error.response?.data
-    });
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ error: error.message });
+    }
+    console.error('OPML recommendations error:', error.response?.data || error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 

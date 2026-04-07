@@ -484,6 +484,203 @@
             background: rgba(29, 185, 84, 0.3);
             transform: scale(1.02);
         }
+
+        .source-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .info-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 1px solid var(--text-secondary);
+            background: none;
+            color: var(--text-secondary);
+            font-size: 10px;
+            font-family: serif;
+            font-style: italic;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            line-height: 1;
+            transition: border-color 0.2s, color 0.2s;
+            flex-shrink: 0;
+        }
+
+        .info-icon:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .opml-upload-area {
+            width: 100%;
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 24px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 8px;
+            box-sizing: border-box;
+        }
+
+        .opml-upload-area:hover {
+            border-color: var(--primary);
+            background: rgba(29, 185, 84, 0.04);
+        }
+
+        .opml-upload-area .upload-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .opml-upload-area .upload-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .opml-upload-area .upload-sub {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .source-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 20px 0;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .source-divider::before,
+        .source-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: #1a1a1a;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 480px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            background: #1a1a1a;
+        }
+
+        .modal-header h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .modal-close:hover { color: var(--text-primary); }
+
+        .modal-body {
+            padding: 20px 24px 24px;
+        }
+
+        .modal-intro {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .app-item {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .app-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .app-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .app-platform {
+            font-size: 10px;
+            font-weight: 400;
+            color: var(--text-secondary);
+            background: var(--border);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .app-steps {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            padding-left: 4px;
+        }
+
+        .app-steps span {
+            color: var(--primary);
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+        }
     </style>
 </head>
 <body>
@@ -494,27 +691,30 @@
         </header>
 
         <div class="main-content">
-            <!-- Auth Section -->
+            <!-- Connect Section -->
             <div class="section">
                 <div class="section-content">
-                    <h2 class="section-title">Connect Your Spotify</h2>
-                    
-                    <p class="info-text">
-                        Podcastify analyzes your podcast listening history to generate personalized recommendations you'll actually want to hear.
-                    </p>
+                    <h2 class="section-title">Connect Your Listening Habits</h2>
 
+                    <!-- OPML Upload -->
+                    <div class="source-label">
+                        Upload Podcast Subscriptions
+                        <button class="info-icon" onclick="openModal()" title="How to export from your app">i</button>
+                    </div>
+                    <div class="opml-upload-area" onclick="document.getElementById('opmlFile').click()">
+                        <input type="file" id="opmlFile" accept=".opml,.xml" style="display:none" onchange="handleOPMLFile(this)">
+                        <div class="upload-icon">📂</div>
+                        <div class="upload-title">Choose your OPML file</div>
+                        <div class="upload-sub">Overcast · Pocket Casts · AntennaPod · Castro · more</div>
+                    </div>
+
+                    <div class="source-divider">or</div>
+
+                    <!-- Spotify -->
                     <button class="spotify-btn" id="connectBtn" onclick="connectSpotify()">
                         <span>🎵</span>
                         Connect with Spotify
                     </button>
-
-                    <p class="info-text" style="font-size: 12px; margin-top: 30px;">
-                        <strong>How it works:</strong><br>
-                        1. Click to authorize with Spotify<br>
-                        2. We analyze your saved shows<br>
-                        3. AI generates 5 personalized recommendations<br>
-                        4. Share your podcast DNA with friends
-                    </p>
 
                     <div id="status" class="status"></div>
                 </div>
@@ -524,11 +724,11 @@
             <div class="section">
                 <div class="section-content">
                     <h2 class="section-title">Recommended For You</h2>
-                    
+
                     <div id="recommendationsContent" class="empty-state">
                         <div class="empty-icon">🎧</div>
-                        <div class="empty-state-title">Connect to Spotify</div>
-                        <p>Your personalized recommendations will appear here.</p>
+                        <div class="empty-state-title">Connect your listening habits</div>
+                        <p>Upload your OPML file or connect Spotify to get personalised recommendations.</p>
                     </div>
                 </div>
             </div>
@@ -546,9 +746,140 @@
         </footer>
     </div>
 
+    <!-- OPML How-To Modal -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>How to export your podcast list</h3>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-intro">Every major podcast app can export your subscriptions as an OPML file. Follow the steps for your app below, then upload it here.</p>
+
+                <div class="app-item">
+                    <div class="app-name">🟠 Overcast <span class="app-platform">iOS</span></div>
+                    <div class="app-steps">
+                        <span>1.</span> Open Overcast and tap <strong>Settings</strong> (bottom right)<br>
+                        <span>2.</span> Scroll down and tap <strong>Export OPML</strong><br>
+                        <span>3.</span> Share or save the file, then upload it here
+                    </div>
+                </div>
+
+                <div class="app-item">
+                    <div class="app-name">🟣 Pocket Casts <span class="app-platform">iOS &amp; Android</span></div>
+                    <div class="app-steps">
+                        <span>1.</span> Tap your <strong>Profile</strong> icon (top right)<br>
+                        <span>2.</span> Go to <strong>Import/Export → Export OPML</strong><br>
+                        <span>3.</span> Save the file, then upload it here
+                    </div>
+                </div>
+
+                <div class="app-item">
+                    <div class="app-name">🔵 Castro <span class="app-platform">iOS</span></div>
+                    <div class="app-steps">
+                        <span>1.</span> Open <strong>Settings</strong> (gear icon)<br>
+                        <span>2.</span> Tap <strong>Export Subscriptions</strong><br>
+                        <span>3.</span> Save the .opml file, then upload it here
+                    </div>
+                </div>
+
+                <div class="app-item">
+                    <div class="app-name">🟢 AntennaPod <span class="app-platform">Android</span></div>
+                    <div class="app-steps">
+                        <span>1.</span> Tap the <strong>three-dot menu → Settings</strong><br>
+                        <span>2.</span> Go to <strong>Import/Export → Export as OPML</strong><br>
+                        <span>3.</span> Save the file, then upload it here
+                    </div>
+                </div>
+
+                <div class="app-item">
+                    <div class="app-name">🎙️ Podcast Addict <span class="app-platform">Android</span></div>
+                    <div class="app-steps">
+                        <span>1.</span> Tap the <strong>menu (☰) → Backup</strong><br>
+                        <span>2.</span> Tap <strong>Export to OPML</strong><br>
+                        <span>3.</span> Save the file, then upload it here
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_BASE = window.location.origin;
         let currentData = null;
+
+        // Modal
+        function openModal() {
+            document.getElementById('modalOverlay').classList.add('open');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('open');
+        }
+
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+        // OPML handling
+        function parseOPML(text) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/xml');
+            const outlines = doc.querySelectorAll('outline[type="rss"], outline[xmlUrl]');
+            if (outlines.length === 0) {
+                // Some OPML files nest outlines differently — grab any outline with a text attribute
+                const all = doc.querySelectorAll('outline[text]');
+                return Array.from(all).map(o => o.getAttribute('text')).filter(Boolean);
+            }
+            return Array.from(outlines)
+                .map(o => o.getAttribute('text') || o.getAttribute('title'))
+                .filter(Boolean);
+        }
+
+        async function handleOPMLFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const uploadArea = document.querySelector('.opml-upload-area');
+            uploadArea.querySelector('.upload-title').textContent = file.name;
+
+            const text = await file.text();
+            const showNames = parseOPML(text);
+
+            if (showNames.length === 0) {
+                showStatus('Could not find any podcasts in that file. Make sure it\'s a valid OPML export.', 'error');
+                return;
+            }
+
+            await generateOPMLRecommendations(showNames);
+            input.value = '';
+        }
+
+        async function generateOPMLRecommendations(showNames) {
+            showStatus(`Analysing ${showNames.length} shows…<span class="loading"></span>`, 'success');
+            document.getElementById('connectBtn').disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/recommendations/opml`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ showNames })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to generate recommendations');
+                }
+
+                const data = await response.json();
+                currentData = data;
+                displayRecommendations(data.recommendations);
+                displayStats(data.stats);
+                showStatus('Recommendations generated! ✨', 'success');
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+            } finally {
+                document.getElementById('connectBtn').disabled = false;
+            }
+        }
 
         // Check for post-OAuth redirect or error on page load
         window.addEventListener('load', () => {
