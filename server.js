@@ -45,8 +45,8 @@ function setCache(key, data) {
   cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
 }
 
-function buildCacheKey(showNames) {
-  return crypto.createHash('sha256').update([...showNames].sort().join('|')).digest('hex');
+function buildCacheKey(showNames, tasteLabel = '') {
+  return crypto.createHash('sha256').update([...showNames].sort().join('|') + tasteLabel).digest('hex');
 }
 
 // iTunes top podcasts chart cache (24hr TTL)
@@ -195,7 +195,7 @@ app.post('/api/recommendations', recommendationsLimiter, async (req, res) => {
       ...(chartStats && { chartStats })
     };
 
-    const recommendations = await getRecommendations(allShowNames);
+    const recommendations = await getRecommendations(allShowNames, chartStats?.tasteProfile);
     res.json({ recommendations, stats });
   } catch (error) {
     if (error.statusCode) {
@@ -206,11 +206,19 @@ app.post('/api/recommendations', recommendationsLimiter, async (req, res) => {
   }
 });
 
-async function getRecommendations(allShowNames) {
+async function getRecommendations(allShowNames, tasteProfile = null) {
   const showNames = allShowNames.slice(0, 15);
-  const cacheKey = buildCacheKey(showNames);
+  const cacheKey = buildCacheKey(showNames, tasteProfile?.label);
   const cached = getCached(cacheKey);
   if (cached) return cached;
+
+  const profileGuidance = tasteProfile?.label === 'Tastemaker'
+    ? "This listener loves discovering things before they blow up — lean into lesser-known, independent, and niche shows."
+    : tasteProfile?.label === 'Trendsetter'
+    ? "This listener is plugged into the biggest shows, so don't shy away from well-known picks — just make sure they're a genuine fit."
+    : tasteProfile
+    ? "Mix a couple of well-known shows with some hidden gems."
+    : "";
 
   let claudeResponse;
   try {
@@ -221,17 +229,22 @@ async function getRecommendations(allShowNames) {
         max_tokens: 1000,
         messages: [{
           role: 'user',
-          content: `You're a podcast expert. Based on these shows someone listens to:
-"${showNames.join('", "')}"
+          content: `You're a podcast expert making personal recommendations to a specific listener. Speak directly to them — use "you" and "your", never "they" or "their".
 
-Generate exactly 5 podcast recommendations they'll love. Do NOT recommend any of the following shows they already follow:
+They follow these shows:
+"${showNames.join('", "')}"
+${tasteProfile ? `\nListener profile: ${tasteProfile.label} — ${tasteProfile.desc}. ${profileGuidance}` : ''}
+
+Recommend exactly 5 podcasts. Do NOT suggest anything from this list of shows they already follow:
 "${allShowNames.join('", "')}"
 
-Format as JSON array with objects containing:
+For the "why" field, write like a friend who knows their taste intimately — be specific, warm, and enthusiastic. Reference what the recommendation shares with shows they already love.
+
+Format as a JSON array with objects containing:
 - name (string)
 - host (string)
-- description (1-2 sentences)
-- why (why they'd like it based on their taste)
+- description (1-2 sentences about the show itself)
+- why (1-2 sentences spoken directly to them — "you'll love" not "they'll love")
 
 Return ONLY valid JSON, no markdown or other text.`
         }]
@@ -283,12 +296,13 @@ app.post('/api/recommendations/opml', recommendationsLimiter, async (req, res) =
   }
 
   try {
-    const [charts, recommendations] = await Promise.all([
-      getItunesCharts().catch(e => { console.error('iTunes chart fetch failed:', e.message); return null; }),
-      getRecommendations(allShowNames)
+    const charts = await getItunesCharts().catch(e => { console.error('iTunes chart fetch failed:', e.message); return null; });
+    const chartStats = charts ? calculateChartStats(allShowNames, charts) : null;
+
+    const [recommendations] = await Promise.all([
+      getRecommendations(allShowNames, chartStats?.tasteProfile)
     ]);
 
-    const chartStats = charts ? calculateChartStats(allShowNames, charts) : null;
     const stats = {
       showsSaved: allShowNames.length,
       userName: 'Podcast Fan',
