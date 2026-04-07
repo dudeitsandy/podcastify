@@ -57,10 +57,10 @@ async function getItunesCharts() {
     return itunesCache.data;
   }
   const response = await axios.get(
-    'https://rss.itunes.apple.com/api/v1/us/podcasts/top-podcasts/all/100/explicit.json',
+    'https://itunes.apple.com/us/rss/toppodcasts/limit=100/json',
     { timeout: 5000 }
   );
-  const charts = response.data.feed.results.map((r, i) => ({ name: r.name, position: i + 1 }));
+  const charts = response.data.feed.entry.map((r, i) => ({ name: r['im:name'].label, position: i + 1 }));
   itunesCache.data = charts;
   itunesCache.expiresAt = Date.now() + 24 * 60 * 60 * 1000;
   return charts;

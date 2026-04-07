@@ -660,7 +660,7 @@
                     <div class="chart-matches">
                         ${cs.topChartMatches.map(m => `<span class="genre-tag">#${m.position} ${m.name}</span>`).join('')}
                     </div>` : ''}` : ''}
-                    <button class="share-btn" onclick="shareResults()">Share Your Podcast DNA 🎙️</button>
+                    <button class="share-btn" id="shareBtn" onclick="shareResults()">Save Your DNA Card 🎙️</button>
                 </div>
             `;
             
@@ -671,23 +671,182 @@
             authSection.insertAdjacentHTML('beforeend', statsHtml);
         }
 
-        function shareResults() {
-            if (!currentData) return;
+        async function generateShareCard(data) {
+            const { recommendations, stats } = data;
+            const cs = stats.chartStats;
+            const W = 600;
+            const PAD = 36;
+            const H = cs ? 458 : 398;
 
-            const cs = currentData.stats.chartStats;
-            const profileStr = cs ? ` I'm a ${cs.tasteProfile.label} — ${cs.tasteProfile.desc}.` : '';
-            const text = `🎙️ I just discovered my Podcast DNA on Podcastify! Based on ${currentData.stats.showsSaved} saved shows, AI recommended 5 podcasts I'll love.${profileStr} Try it:`;
-            
-            if (navigator.share) {
-                navigator.share({
-                    title: 'Podcastify - My Podcast DNA',
-                    text: text,
-                    url: window.location.href
-                });
+            const canvas = document.createElement('canvas');
+            canvas.width = W * 2;
+            canvas.height = H * 2;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(2, 2);
+
+            // Load Ghostweave logo
+            const logo = await new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => resolve(null);
+                img.src = '/assets/ghostweave_logo.png';
+            });
+
+            // Background
+            ctx.fillStyle = '#0f0f0f';
+            ctx.fillRect(0, 0, W, H);
+
+            // Subtle grid lines (matching app background)
+            ctx.strokeStyle = 'rgba(29, 185, 84, 0.04)';
+            ctx.lineWidth = 0.5;
+            for (let x = 0; x < W; x += 50) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+            }
+            for (let gy = 0; gy < H; gy += 50) {
+                ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+            }
+
+            // Waveform (centered at y=35)
+            const WAVE_CY = 35;
+            const barW = 5, barGap = 3;
+            const totalBars = Math.floor((W - PAD * 2) / (barW + barGap));
+            for (let i = 0; i < totalBars; i++) {
+                const t = i / totalBars;
+                const h = 5
+                    + Math.abs(Math.sin(t * Math.PI * 8)) * 16
+                    + Math.abs(Math.sin(t * Math.PI * 15 + 0.7)) * 11
+                    + Math.abs(Math.sin(t * Math.PI * 3.5)) * 8;
+                const x = PAD + i * (barW + barGap);
+                const opacity = 0.3 + (h / 35) * 0.65;
+                ctx.fillStyle = `rgba(29, 185, 84, ${Math.min(opacity, 0.95).toFixed(2)})`;
+                ctx.fillRect(x, WAVE_CY - h / 2, barW, h);
+            }
+
+            // Helper: divider line
+            const divider = (y) => {
+                ctx.strokeStyle = '#282828';
+                ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke();
+            };
+
+            let y = 70;
+
+            // Podcastify header
+            y += 26;
+            ctx.fillStyle = '#1DB954';
+            ctx.font = 'bold 21px "Space Mono", "Courier New", monospace';
+            ctx.fillText('◉ PODCASTIFY', PAD, y);
+            y += 17;
+            ctx.fillStyle = '#6b6b6b';
+            ctx.font = '10px "Space Mono", "Courier New", monospace';
+            ctx.fillText('YOUR PODCAST DNA DECODED', PAD, y);
+            y += 14;
+            divider(y); y += 20;
+
+            // Taste profile + stats
+            if (cs) {
+                ctx.font = '17px sans-serif';
+                ctx.fillText(cs.tasteProfile.emoji, PAD, y);
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 13px "Poppins", -apple-system, sans-serif';
+                ctx.fillText(cs.tasteProfile.label, PAD + 26, y);
+                y += 16;
+                ctx.fillStyle = '#b3b3b3';
+                ctx.font = '11px "Poppins", -apple-system, sans-serif';
+                ctx.fillText(cs.tasteProfile.desc, PAD + 26, y);
+                y += 20;
+                ctx.fillStyle = '#6b6b6b';
+                ctx.font = '10px "Space Mono", "Courier New", monospace';
+                ctx.fillText(`${stats.showsSaved} SHOWS ANALYSED  ·  ${cs.inTopCharts} IN APPLE TOP 100`, PAD, y);
+                y += 14;
             } else {
-                // Fallback for unsupported browsers
-                const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-                window.open(url, '_blank');
+                ctx.fillStyle = '#6b6b6b';
+                ctx.font = '10px "Space Mono", "Courier New", monospace';
+                ctx.fillText(`${stats.showsSaved} SHOWS ANALYSED`, PAD, y);
+                y += 14;
+            }
+
+            divider(y); y += 20;
+
+            // Recommendations
+            ctx.fillStyle = '#6b6b6b';
+            ctx.font = '9px "Space Mono", "Courier New", monospace';
+            ctx.letterSpacing = '1px';
+            ctx.fillText('RECOMMENDED FOR YOU', PAD, y);
+            ctx.letterSpacing = '0px';
+            y += 10;
+
+            recommendations.slice(0, 5).forEach((rec, i) => {
+                y += 24;
+                // Number
+                ctx.fillStyle = '#1DB954';
+                ctx.font = 'bold 10px "Space Mono", "Courier New", monospace';
+                ctx.fillText(String(i + 1).padStart(2, '0'), PAD, y);
+                // Show name
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 13px "Poppins", -apple-system, sans-serif';
+                const name = rec.name.length > 32 ? rec.name.slice(0, 29) + '…' : rec.name;
+                ctx.fillText(name, PAD + 24, y);
+                // Host (right-aligned)
+                ctx.fillStyle = '#6b6b6b';
+                ctx.font = '10px "Space Mono", "Courier New", monospace';
+                const host = rec.host.length > 20 ? rec.host.slice(0, 18) + '…' : rec.host;
+                ctx.textAlign = 'right';
+                ctx.fillText(host, W - PAD, y);
+                ctx.textAlign = 'left';
+            });
+
+            y += 22;
+            divider(y); y += 14;
+
+            // Footer: Ghostweave logo + URL
+            const logoSize = 30;
+            if (logo) {
+                ctx.drawImage(logo, PAD, y, logoSize, logoSize);
+            }
+            ctx.fillStyle = '#6b6b6b';
+            ctx.font = '10px "Space Mono", "Courier New", monospace';
+            ctx.fillText('ghostweave.com', PAD + logoSize + 8, y + 19);
+
+            ctx.fillStyle = '#1DB954';
+            ctx.textAlign = 'right';
+            ctx.fillText(window.location.hostname, W - PAD, y + 19);
+            ctx.textAlign = 'left';
+
+            return canvas;
+        }
+
+        async function shareResults() {
+            if (!currentData) return;
+            const btn = document.getElementById('shareBtn');
+            btn.disabled = true;
+            btn.textContent = 'Generating…';
+
+            try {
+                const canvas = await generateShareCard(currentData);
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                const file = new File([blob], 'my-podcast-dna.png', { type: 'image/png' });
+
+                // Mobile: Web Share API with file
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({ files: [file], title: 'My Podcast DNA — Podcastify' });
+                        return;
+                    } catch (e) {
+                        if (e.name === 'AbortError') return;
+                    }
+                }
+
+                // Desktop fallback: download the PNG
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'my-podcast-dna.png';
+                a.click();
+                URL.revokeObjectURL(url);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Save Your DNA Card 🎙️';
             }
         }
 
