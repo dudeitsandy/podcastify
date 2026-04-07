@@ -28,6 +28,8 @@ const recommendationsLimiter = rateLimit({
 });
 
 // In-memory cache: cacheKey -> { data, expiresAt }
+// Bump CACHE_VERSION to invalidate all cached recommendations after prompt changes
+const CACHE_VERSION = 'v2';
 const cache = new Map();
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -46,7 +48,7 @@ function setCache(key, data) {
 }
 
 function buildCacheKey(showNames, tasteLabel = '') {
-  return crypto.createHash('sha256').update([...showNames].sort().join('|') + tasteLabel).digest('hex');
+  return crypto.createHash('sha256').update([...showNames].sort().join('|') + tasteLabel + CACHE_VERSION).digest('hex');
 }
 
 // iTunes top podcasts chart cache (24hr TTL)
@@ -213,11 +215,11 @@ async function getRecommendations(allShowNames, tasteProfile = null) {
   if (cached) return cached;
 
   const profileGuidance = tasteProfile?.label === 'Tastemaker'
-    ? "This listener loves discovering things before they blow up — lean into lesser-known, independent, and niche shows."
+    ? "Avoid the biggest mainstream blockbusters — favour shows that are well-regarded but not household names."
     : tasteProfile?.label === 'Trendsetter'
-    ? "This listener is plugged into the biggest shows, so don't shy away from well-known picks — just make sure they're a genuine fit."
+    ? "Don't shy away from well-known picks — just make sure they're a genuine fit for their taste."
     : tasteProfile
-    ? "Mix a couple of well-known shows with some hidden gems."
+    ? "Mix a couple of well-known shows with some less obvious picks."
     : "";
 
   let claudeResponse;
@@ -229,22 +231,24 @@ async function getRecommendations(allShowNames, tasteProfile = null) {
         max_tokens: 1000,
         messages: [{
           role: 'user',
-          content: `You're a podcast expert making personal recommendations to a specific listener. Speak directly to them — use "you" and "your", never "they" or "their".
+          content: `You are a podcast expert with encyclopedic knowledge of real, currently active shows. Only recommend podcasts you know with certainty exist — do not approximate, invent, or guess names.
+
+Speak directly to the listener using "you" and "your", never "they" or "their".
 
 They follow these shows:
 "${showNames.join('", "')}"
 ${tasteProfile ? `\nListener profile: ${tasteProfile.label} — ${tasteProfile.desc}. ${profileGuidance}` : ''}
 
-Recommend exactly 5 podcasts. Do NOT suggest anything from this list of shows they already follow:
+Recommend exactly 5 real podcasts. Do NOT suggest anything from this list of shows they already follow:
 "${allShowNames.join('", "')}"
 
-For the "why" field, write like a friend who knows their taste intimately — be specific, warm, and enthusiastic. Reference what the recommendation shares with shows they already love.
+For the "why" field, be specific and personal — explain what this show shares with ones they already love, spoken directly to them.
 
 Format as a JSON array with objects containing:
-- name (string)
-- host (string)
+- name (string — exact, accurate podcast title)
+- host (string — accurate host name)
 - description (1-2 sentences about the show itself)
-- why (1-2 sentences spoken directly to them — "you'll love" not "they'll love")
+- why (1-2 sentences to the listener — use "you'll love" not "they'll love")
 
 Return ONLY valid JSON, no markdown or other text.`
         }]
