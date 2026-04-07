@@ -1,0 +1,24 @@
+{
+  "name": "Podcastify",
+  "description": "Discover your podcast DNA with AI-powered recommendations",
+  "buildCommand": "npm install",
+  "startCommand": "npm start",
+  "envs": {
+    "SPOTIFY_CLIENT_ID": {
+      "description": "Spotify API Client ID from https://developer.spotify.com/dashboard",
+      "value": ""
+    },
+    "SPOTIFY_CLIENT_SECRET": {
+      "description": "Spotify API Client Secret",
+      "value": ""
+    },
+    "ANTHROPIC_API_KEY": {
+      "description": "Anthropic API Key from https://console.anthropic.com",
+      "value": ""
+    },
+    "REDIRECT_URI": {
+      "description": "OAuth redirect URI (set to your Railway domain)",
+      "value": ""
+    }
+  }
+}

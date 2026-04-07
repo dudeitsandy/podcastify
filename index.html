@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podcastify – Your Podcast DNA</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Poppins:wght@300;400;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1DB954;
+            --dark-bg: #0f0f0f;
+            --card-bg: #1a1a1a;
+            --accent: #1ed760;
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+            --border: #282828;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1a2e 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(0deg, transparent 24%, rgba(29, 185, 84, .05) 25%, rgba(29, 185, 84, .05) 26%, transparent 27%, transparent 74%, rgba(29, 185, 84, .05) 75%, rgba(29, 185, 84, .05) 76%, transparent 77%, transparent),
+                linear-gradient(90deg, transparent 24%, rgba(29, 185, 84, .05) 25%, rgba(29, 185, 84, .05) 26%, transparent 27%, transparent 74%, rgba(29, 185, 84, .05) 75%, rgba(29, 185, 84, .05) 76%, transparent 77%, transparent);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: slideDown 0.8s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            font-family: 'Space Mono', monospace;
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -2px;
+        }
+
+        .tagline {
+            font-size: 16px;
+            color: var(--text-secondary);
+            font-weight: 300;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 60px;
+            animation: fadeIn 1s ease-out 0.2s both;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .section {
+            background: rgba(26, 26, 26, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(29, 185, 84, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .section-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        .spotify-btn {
+            width: 100%;
+            padding: 16px 24px;
+            background: var(--primary);
+            color: #000;
+            border: none;
+            border-radius: 24px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .spotify-btn:hover {
+            background: var(--accent);
+            transform: scale(1.02);
+            box-shadow: 0 8px 24px rgba(29, 185, 84, 0.3);
+        }
+
+        .spotify-btn:active {
+            transform: scale(0.98);
+        }
+
+        .spotify-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .info-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .status {
+            padding: 12px 16px;
+            background: rgba(29, 185, 84, 0.1);
+            border-left: 3px solid var(--primary);
+            border-radius: 6px;
+            font-size: 14px;
+            margin-top: 20px;
+            display: none;
+            animation: slideIn 0.4s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .status.active {
+            display: block;
+        }
+
+        .status.success {
+            background: rgba(29, 185, 84, 0.1);
+            border-left-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .status.error {
+            background: rgba(255, 65, 65, 0.1);
+            border-left-color: #ff4141;
+            color: #ff8a80;
+        }
+
+        .recommendation-card {
+            background: rgba(40, 40, 40, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            animation: popIn 0.5s ease-out both;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .recommendation-card:nth-child(1) { animation-delay: 0.1s; }
+        .recommendation-card:nth-child(2) { animation-delay: 0.2s; }
+        .recommendation-card:nth-child(3) { animation-delay: 0.3s; }
+        .recommendation-card:nth-child(4) { animation-delay: 0.4s; }
+        .recommendation-card:nth-child(5) { animation-delay: 0.5s; }
+
+        .recommendation-card:hover {
+            background: rgba(40, 40, 40, 0.8);
+            border-color: var(--primary);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(29, 185, 84, 0.2);
+        }
+
+        .rec-title {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 6px;
+            color: var(--text-primary);
+        }
+
+        .rec-host {
+            font-size: 14px;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .rec-description {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+
+        .rec-reason {
+            font-size: 12px;
+            background: rgba(29, 185, 84, 0.2);
+            color: var(--accent);
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .listening-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .stat-box {
+            background: rgba(29, 185, 84, 0.1);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 6px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .genre-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .genre-tag {
+            background: rgba(29, 185, 84, 0.2);
+            border: 1px solid var(--primary);
+            color: var(--accent);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: pulse 1.5s ease-in-out infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        footer {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 13px;
+            padding-top: 40px;
+            border-top: 1px solid var(--border);
+            margin-top: 60px;
+        }
+
+        .footer-note {
+            margin-top: 20px;
+        }
+
+        .share-btn {
+            width: 100%;
+            padding: 12px 20px;
+            background: rgba(29, 185, 84, 0.2);
+            color: var(--accent);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .share-btn:hover {
+            background: rgba(29, 185, 84, 0.3);
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">◉ PODCASTIFY</div>
+            <div class="tagline">Your Podcast DNA Decoded</div>
+        </header>
+
+        <div class="main-content">
+            <!-- Auth Section -->
+            <div class="section">
+                <div class="section-content">
+                    <h2 class="section-title">Connect Your Spotify</h2>
+                    
+                    <p class="info-text">
+                        Podcastify analyzes your podcast listening history to generate personalized recommendations you'll actually want to hear.
+                    </p>
+
+                    <button class="spotify-btn" id="connectBtn" onclick="connectSpotify()">
+                        <span>🎵</span>
+                        Connect with Spotify
+                    </button>
+
+                    <p class="info-text" style="font-size: 12px; margin-top: 30px;">
+                        <strong>How it works:</strong><br>
+                        1. Click to authorize with Spotify<br>
+                        2. We analyze your saved shows<br>
+                        3. AI generates 5 personalized recommendations<br>
+                        4. Share your podcast DNA with friends
+                    </p>
+
+                    <div id="status" class="status"></div>
+                </div>
+            </div>
+
+            <!-- Recommendations Section -->
+            <div class="section">
+                <div class="section-content">
+                    <h2 class="section-title">Recommended For You</h2>
+                    
+                    <div id="recommendationsContent" class="empty-state">
+                        <div class="empty-icon">🎧</div>
+                        <div class="empty-state-title">Connect to Spotify</div>
+                        <p>Your personalized recommendations will appear here.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Podcastify is not affiliated with Spotify. Your data is not stored.</p>
+            <p class="footer-note">🎙️ Discover podcasts that match YOUR listening DNA</p>
+        </footer>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let currentData = null;
+
+        // Check for post-OAuth redirect or error on page load
+        window.addEventListener('load', () => {
+            const params = new URLSearchParams(window.location.search);
+            const connected = params.get('connected');
+            const error = params.get('error');
+
+            window.history.replaceState({}, document.title, window.location.pathname);
+
+            if (error) {
+                showStatus(`Authorization failed: ${error}`, 'error');
+                return;
+            }
+
+            if (connected) {
+                generateRecommendations();
+            }
+        });
+
+        async function connectSpotify() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/spotify`);
+                const data = await response.json();
+                window.location.href = data.url;
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function generateRecommendations() {
+            showStatus('Analyzing your podcast taste...<span class="loading"></span>', 'success');
+            document.getElementById('connectBtn').disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/recommendations`, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                });
+
+                if (response.status === 401) {
+                    showStatus('Your Spotify session expired. Please reconnect.', 'error');
+                    document.getElementById('connectBtn').disabled = false;
+                    return;
+                }
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to generate recommendations');
+                }
+
+                const data = await response.json();
+                currentData = data;
+
+                displayRecommendations(data.recommendations);
+                displayStats(data.stats);
+                showStatus('Recommendations generated! ✨', 'success');
+
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+                console.error('Error:', error);
+            } finally {
+                document.getElementById('connectBtn').disabled = false;
+            }
+        }
+
+        function displayRecommendations(recommendations) {
+            const container = document.getElementById('recommendationsContent');
+            
+            let html = '';
+            recommendations.forEach(rec => {
+                html += `
+                    <div class="recommendation-card">
+                        <div class="rec-title">🎙️ ${rec.name}</div>
+                        <div class="rec-host">Hosted by ${rec.host}</div>
+                        <div class="rec-description">${rec.description}</div>
+                        <span class="rec-reason">${rec.why}</span>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function displayStats(stats) {
+            const authSection = document.querySelector('.section:first-child .section-content');
+            const statsHtml = `
+                <div style="margin-top: 40px; padding-top: 30px; border-top: 1px solid var(--border);">
+                    <div class="listening-stats">
+                        <div class="stat-box">
+                            <div class="stat-number">${stats.showsSaved}</div>
+                            <div class="stat-label">Shows Saved</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-number">${stats.genres}</div>
+                            <div class="stat-label">Genres</div>
+                        </div>
+                    </div>
+                    <div class="genre-tags">
+                        ${stats.topGenres.map(g => `<span class="genre-tag">${g}</span>`).join('')}
+                    </div>
+                    <button class="share-btn" onclick="shareResults()">Share Your Podcast DNA 🎙️</button>
+                </div>
+            `;
+            
+            // Remove old stats if they exist
+            const oldStats = authSection.querySelector('[style*="margin-top: 40px"]');
+            if (oldStats) oldStats.remove();
+            
+            authSection.insertAdjacentHTML('beforeend', statsHtml);
+        }
+
+        function shareResults() {
+            if (!currentData) return;
+
+            const text = `🎙️ I just discovered my Podcast DNA on Podcastify! I listen to ${currentData.stats.showsSaved} shows across ${currentData.stats.genres} genres. Try it: podcastify.app`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Podcastify - My Podcast DNA',
+                    text: text,
+                    url: window.location.href
+                });
+            } else {
+                // Fallback for unsupported browsers
+                const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+                window.open(url, '_blank');
+            }
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.innerHTML = message;
+            status.className = `status active ${type}`;
+        }
+    </script>
+</body>
+</html>
