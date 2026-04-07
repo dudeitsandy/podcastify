@@ -144,8 +144,6 @@ app.post('/api/recommendations', recommendationsLimiter, async (req, res) => {
 
     const stats = {
       showsSaved: shows.length,
-      genres: genres.length,
-      topGenres: genres.slice(0, 6),
       userName: userResponse.data.display_name || 'Podcast Enthusiast'
     };
 

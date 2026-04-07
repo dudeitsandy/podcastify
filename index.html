@@ -397,6 +397,39 @@
             margin-top: 20px;
         }
 
+        .ghostweave-credit {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .ghostweave-credit span {
+            font-size: 12px;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+        }
+
+        .ghostweave-credit a {
+            display: flex;
+            align-items: center;
+            opacity: 0.75;
+            transition: opacity 0.2s ease;
+        }
+
+        .ghostweave-credit a:hover {
+            opacity: 1;
+        }
+
+        .ghostweave-credit img {
+            height: 32px;
+            width: auto;
+            border-radius: 6px;
+        }
+
         .share-btn {
             width: 100%;
             padding: 12px 20px;
@@ -469,6 +502,12 @@
         <footer>
             <p>Podcastify is not affiliated with Spotify. Your data is not stored.</p>
             <p class="footer-note">🎙️ Discover podcasts that match YOUR listening DNA</p>
+            <div class="ghostweave-credit">
+                <span>Built by</span>
+                <a href="https://www.ghostweave.com" target="_blank" rel="noopener noreferrer">
+                    <img src="/assets/ghostweave_logo.png" alt="Ghostweave Labs">
+                </a>
+            </div>
         </footer>
     </div>
 
@@ -562,18 +601,11 @@
             const authSection = document.querySelector('.section:first-child .section-content');
             const statsHtml = `
                 <div style="margin-top: 40px; padding-top: 30px; border-top: 1px solid var(--border);">
-                    <div class="listening-stats">
+                    <div class="listening-stats" style="grid-template-columns: 1fr;">
                         <div class="stat-box">
                             <div class="stat-number">${stats.showsSaved}</div>
-                            <div class="stat-label">Shows Saved</div>
+                            <div class="stat-label">Shows Analysed</div>
                         </div>
-                        <div class="stat-box">
-                            <div class="stat-number">${stats.genres}</div>
-                            <div class="stat-label">Genres</div>
-                        </div>
-                    </div>
-                    <div class="genre-tags">
-                        ${stats.topGenres.map(g => `<span class="genre-tag">${g}</span>`).join('')}
                     </div>
                     <button class="share-btn" onclick="shareResults()">Share Your Podcast DNA 🎙️</button>
                 </div>
@@ -589,7 +621,7 @@
         function shareResults() {
             if (!currentData) return;
 
-            const text = `🎙️ I just discovered my Podcast DNA on Podcastify! I listen to ${currentData.stats.showsSaved} shows across ${currentData.stats.genres} genres. Try it: podcastify.app`;
+            const text = `🎙️ I just discovered my Podcast DNA on Podcastify! Based on ${currentData.stats.showsSaved} saved shows, AI recommended 5 podcasts I'll love. Try it:`;
             
             if (navigator.share) {
                 navigator.share({
