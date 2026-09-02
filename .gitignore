@@ -34,3 +34,6 @@ build/
 
 # Netlify
 .netlify/
+
+# Claude Code local settings (machine-specific)
+.claude/
